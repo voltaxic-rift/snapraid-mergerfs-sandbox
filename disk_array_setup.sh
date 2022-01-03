@@ -1,6 +1,6 @@
 #!/bin/bash
 
-dnf install -y gcc git make gdisk
+dnf install -y gcc make
 curl -LO https://github.com/amadvance/snapraid/releases/download/v12.0/snapraid-12.0.tar.gz
 tar zxvf snapraid-12.0.tar.gz
 cd snapraid-12.0/
@@ -12,19 +12,16 @@ cd ..
 cp ~/snapraid-12.0/snapraid.conf.example /etc/snapraid.conf
 rm -rf snapraid-12.0*
 
-parted -a optimal -s /dev/sdb "mklabel gpt" \
-    "mkpart primary 1 -1" \
-    "align-check optimal 1"
-sgdisk --backup=table /dev/sdb
-sgdisk --load-backup=table /dev/sdc
-sgdisk --load-backup=table /dev/sdd
-sgdisk --load-backup=table /dev/sde
-sgdisk --load-backup=table /dev/sdf
-sgdisk --load-backup=table /dev/sdg
-sgdisk --load-backup=table /dev/sdh
-sgdisk --load-backup=table /dev/sdi
-sgdisk --load-backup=table /dev/sdj
-sgdisk --load-backup=table /dev/sdk
+parted -a optimal -s /dev/sdb -- mklabel gpt mkpart primary xfs 1 -1 align-check optimal 1
+parted -a optimal -s /dev/sdc -- mklabel gpt mkpart primary xfs 1 -1 align-check optimal 1
+parted -a optimal -s /dev/sdd -- mklabel gpt mkpart primary xfs 1 -1 align-check optimal 1
+parted -a optimal -s /dev/sde -- mklabel gpt mkpart primary xfs 1 -1 align-check optimal 1
+parted -a optimal -s /dev/sdf -- mklabel gpt mkpart primary xfs 1 -1 align-check optimal 1
+parted -a optimal -s /dev/sdg -- mklabel gpt mkpart primary xfs 1 -1 align-check optimal 1
+parted -a optimal -s /dev/sdh -- mklabel gpt mkpart primary xfs 1 -1 align-check optimal 1
+parted -a optimal -s /dev/sdi -- mklabel gpt mkpart primary xfs 1 -1 align-check optimal 1
+parted -a optimal -s /dev/sdj -- mklabel gpt mkpart primary xfs 1 -1 align-check optimal 1
+parted -a optimal -s /dev/sdk -- mklabel gpt mkpart primary xfs 1 -1 align-check optimal 1
 
 mkdir -p /mnt/data/disk{1..8}
 mkdir -p /mnt/parity/disk{1,2}
@@ -40,8 +37,8 @@ mkfs.xfs /dev/sdi1
 mkfs.xfs /dev/sdj1
 mkfs.xfs /dev/sdk1
 
-blkid -s UUID -o value /dev/sd* | tail -n +3 | head -n -2 | xargs -I% echo "UUID=% /mnt/data/disk xfs defaults 0 2" | awk '{print $1,$2 NR,$3,$4,$5,$6}' >> /etc/fstab
-blkid -s UUID -o value /dev/sd* | tail -2 | xargs -I% echo "UUID=% /mnt/parity/disk xfs defaults 0 2" | awk '{print $1,$2 NR,$3,$4,$5,$6}' >> /etc/fstab
+blkid -s UUID -o value /dev/sd{b..k}1 | head -8 | xargs -I% echo "UUID=% /mnt/data/disk xfs defaults 0 2" | awk '{print $1,$2 NR,$3,$4,$5,$6}' >> /etc/fstab
+blkid -s UUID -o value /dev/sd{b..k}1 | tail -2 | xargs -I% echo "UUID=% /mnt/parity/disk xfs defaults 0 2" | awk '{print $1,$2 NR,$3,$4,$5,$6}' >> /etc/fstab
 
 mount -a
 
@@ -106,7 +103,6 @@ data d8 /mnt/data/disk8/
 # Format: "exclude /PATH/FILE"
 # Format: "exclude /PATH/DIR/"
 exclude *.unrecoverable
-exclude /tmp/
 exclude /lost+found/
 
 # Defines the block size in kibi bytes (1024 bytes) (uncomment to enable).
@@ -155,6 +151,6 @@ EOS
 
 dnf install -y https://github.com/trapexit/mergerfs/releases/download/2.33.3/mergerfs-2.33.3-1.el8.x86_64.rpm
 
-echo "/mnt/data/* /storage fuse.mergerfs allow_other,direct_io,use_ino,category.create=mfs,moveonenospc=true,minfreespace=4G,fsname=mergerfsPool 0 0" >> /etc/fstab
+echo "/mnt/data/* /storage fuse.mergerfs allow_other,use_ino,cache.files=partial,moveonenospc=true,dropcacheonclose=true,category.create=mfs,fsname=mergerfsPool 0 0" >> /etc/fstab
 mkdir /storage
 mount /storage
